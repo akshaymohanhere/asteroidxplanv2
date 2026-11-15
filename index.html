@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClearSpend · Amazon Ads Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{--bg:#f4f6f5;--surface:#fff;--ink:#14231f;--mute:#5d6e68;--line:#d9e0dd;--accent:#0f6b57;--waste:#c2410c;--wastebg:#fdeee4;--good:#0f6b57;--goodbg:#e2f3ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1815;--surface:#16241f;--ink:#e8f0ed;--mute:#98aba4;--line:#2a3d36;--accent:#4cc3a4;--waste:#ff9b66;--wastebg:#3a2418;--good:#4cc3a4;--goodbg:#13302a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1815;--surface:#16241f;--ink:#e8f0ed;--mute:#98aba4;--line:#2a3d36;--accent:#4cc3a4;--waste:#ff9b66;--wastebg:#3a2418;--good:#4cc3a4;--goodbg:#13302a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 "Instrument Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:28px;line-height:1.15;margin:0 0 6px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;margin:34px 0 12px;font-weight:650}
+p.sub{color:var(--mute);margin:0 0 22px;max-width:62ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){.row{grid-template-columns:1fr}}
+label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+input[type=file],textarea,select,input[type=number]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px}
+textarea{min-height:200px;resize:vertical}
+.small{font-size:13px;color:var(--mute);margin-top:6px}
+.opts{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.opts>div{flex:1;min-width:140px}
+button{font:inherit;font-weight:600;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:11px 18px;cursor:pointer}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) button{color:#07211a}}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.kpi b{display:block;font-size:22px;font-weight:700}
+.kpi span{color:var(--mute);font-size:13px}
+.kpi.bad{background:var(--wastebg);border-color:var(--waste)}.kpi.bad b{color:var(--waste)}
+.kpi.good{background:var(--goodbg)}.kpi.good b{color:var(--good)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:190px}
+th{font-weight:600;color:var(--mute);font-size:13px}
+td.w{color:var(--waste);font-weight:600}
+.pitch{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;font-size:15px;line-height:1.65}
+.err{color:var(--waste);font-weight:600;margin-top:10px}
+.hidden{display:none}
+</style>
+<style id="theme">
+:root{--bg:#f3f4fb;--surface:#fff;--s2:#f7f8fd;--ink:#0e1330;--mute:#5e6684;--line:#e3e6f3;--accent:#5b4bff;--accent2:#9a5bff;--waste:#e0383e;--wastebg:#fff1f1;--good:#0b8f63;--goodbg:#e5f8f0;--shadow:0 1px 2px rgba(20,24,70,.05),0 14px 34px -14px rgba(70,55,210,.22)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#070a16;--surface:#0f1428;--s2:#141a33;--ink:#eef0fc;--mute:#9aa2c4;--line:#222a4c;--accent:#8c7fff;--accent2:#b384ff;--waste:#ff7d82;--wastebg:#2a1519;--good:#40dba6;--goodbg:#0e2a23;--shadow:0 1px 2px rgba(0,0,0,.4),0 18px 40px -16px rgba(0,0,0,.65)}:root:not([data-theme="light"]) button:not(.ghost){color:#fff}}
+body{font-family:"Plus Jakarta Sans","Instrument Sans",system-ui,-apple-system,Segoe UI,sans-serif;font-variant-numeric:tabular-nums;background:radial-gradient(1100px 480px at 75% -8%,rgba(110,90,255,.13),transparent 60%),var(--bg);font-size:15px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:30}
+main{max-width:1080px;padding:26px 18px 80px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backdrop-filter:blur(14px);background:color-mix(in srgb,var(--surface) 84%,transparent);border-bottom:1px solid var(--line)}
+.top>div{max-width:1080px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;box-shadow:0 6px 16px -4px rgba(91,75,255,.6)}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.025em}
+.tag{margin-left:auto;font-size:12.5px;color:var(--mute);border:1px solid var(--line);padding:5px 12px;border-radius:99px;background:var(--surface)}
+.hero{background:radial-gradient(700px 300px at 85% 0%,rgba(154,91,255,.55),transparent 65%),linear-gradient(135deg,#0a0f26 0%,#1a1a52 60%,#3b32c9 130%);color:#fff;border-radius:24px;padding:46px 40px 40px;margin-bottom:22px;box-shadow:var(--shadow)}
+.hero .pill{display:inline-block;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
+.hero h1{font-size:clamp(28px,4.6vw,46px);line-height:1.08;letter-spacing:-.03em;font-weight:800;margin:18px 0 14px;max-width:18ch}
+.hero p{color:rgba(255,255,255,.78);font-size:17px;line-height:1.6;max-width:56ch;margin:0 0 22px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chips span{font-size:13px;padding:7px 13px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16)}
+h2{font-size:22px;letter-spacing:-.02em;font-weight:750;margin:44px 0 14px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:5px;height:22px;border-radius:4px;background:linear-gradient(var(--accent),var(--accent2))}
+h3{letter-spacing:-.01em}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+.row>div{background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:16px}
+label{font-size:13.5px;font-weight:650;letter-spacing:-.005em}
+input[type=file]{padding:20px;border:1.5px dashed var(--accent);background:var(--surface);border-radius:12px;cursor:pointer}
+input[type=file]::file-selector-button{margin-right:12px;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:650;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));cursor:pointer}
+input[type=number],input[type=text],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+button{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;padding:13px 26px;font-weight:700;letter-spacing:-.005em;box-shadow:0 10px 24px -10px rgba(91,75,255,.7);transition:transform .15s,box-shadow .15s}
+button:hover{transform:translateY(-1px)}
+button.ghost{background:var(--surface);color:var(--accent);border:1px solid var(--line);box-shadow:none}
+#go{font-size:16px;padding:15px 34px}
+details.adv{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:4px 16px 14px;background:var(--s2)}
+details.adv>summary{cursor:pointer;font-weight:650;padding:12px 0;list-style:none}
+details.adv>summary::before{content:"+ ";color:var(--accent);font-weight:800}
+details.adv[open]>summary::before{content:"\2212  "}
+.kpis{gap:14px}
+.kpi{border-radius:16px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.kpi.bad::before{background:var(--waste)}.kpi.good::before{background:var(--good)}
+.kpi b{font-size:26px;letter-spacing:-.03em;margin-bottom:2px}
+table{border-radius:16px;overflow:hidden;border-collapse:separate;border-spacing:0;box-shadow:var(--shadow)}
+th{background:var(--s2);font-size:12.5px;padding:12px 14px}td{padding:12px 14px}
+tr:last-child td{border-bottom:0}tbody tr:hover td,tr:hover>td{background:var(--s2)}
+.pitch{border-radius:18px;padding:24px 26px;line-height:1.75;border-left:4px solid var(--accent);box-shadow:var(--shadow)}
+.small{font-size:13px}
+@media(max-width:720px){.hero{padding:32px 22px}.tag{display:none}main{padding-top:16px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><div><span class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 19V11M12 19V5M19 19v-6"/></svg></span><span class="brand">ClearSpend</span><span class="tag">Amazon Ads Intelligence</span></div></header>
+<main>
+<section class="hero"><span class="pill">Amazon Ads Intelligence</span><h1>Know where every ad dollar goes.</h1><p>Upload a seller’s Search Term Report. In seconds you get the wasted spend, the plan to recommend, the investment to propose, and a meeting script ready for the call.</p><div class="chips"><span>Wasted spend detection</span><span>Plan recommendation</span><span>Investment and payback</span><span>Private: runs in your browser</span></div></section>
+
+
+<div class="panel">
+<div class="row">
+<div>
+<label for="f">Seller’s Search Term Report</label>
+<input id="f" type="file" accept=".csv,.xlsx,.xls">
+<div class="small">Seller Central → Advertising → Reports → Sponsored Products → Search term.</div>
+</div>
+<div>
+<label for="svcfile">Your plans and services (PDF, TXT, CSV or XLSX)</label>
+<input id="svcfile" type="file" accept=".pdf,.txt,.csv,.xlsx,.xls" style="margin-bottom:8px">
+<textarea id="svc" placeholder="Starter plan&#10;Weekly negative keyword cleanup&#10;Monthly report&#10;&#10;Growth plan&#10;Negative keywords and bid optimization&#10;Exact-match keyword harvesting&#10;Weekly report and call"></textarea>
+<div class="small">Upload a file or paste text. Write the plan name first, then its features, with a blank line between plans. The tool compares them against the seller’s report.</div>
+<div class="small" id="svcmsg" role="status">Pasted text is saved in this browser, so you only need to do this once.</div>
+</div>
+</div>
+<details class="adv"><summary>Settings: currency, targets, plan prices</summary><div class="opts">
+<div><label for="cur">Currency</label><select id="cur"><option>$</option><option>£</option><option>C$</option></select></div>
+<div><label for="tacos">Seller’s target ACOS % (optional)</label><input id="tacos" type="number" placeholder="Leave blank" min="1" max="100"></div>
+<div><label for="margin">Seller’s profit margin % (optional)</label><input id="margin" type="number" placeholder="Before ad spend" min="1" max="100"></div>
+<div><label for="minc">Waste = clicks at least</label><input id="minc" type="number" value="10" min="1"></div>
+<div><label for="seller">Seller name</label><input id="seller" type="file" class="hidden"><input id="sname" type="text" placeholder="Optional" style="width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px"></div>
+</div>
+<div class="opts"><div><label for="planKeep">Plan if healthy, little to scale</label><select id="planKeep"><option selected>Standard</option><option>AutoFix</option><option>Premium</option></select></div><div><label for="planSteady">Plan if profitable, steady scaling</label><select id="planSteady"><option>Standard</option><option selected>AutoFix</option><option>Premium</option></select></div><div><label for="planStrong">Plan if profitable, strong scaling</label><select id="planStrong"><option>Standard</option><option>AutoFix</option><option selected>Premium</option></select></div></div>
+<div class="small">When waste is high, the tool suggests AutoFix, or Premium if there are several problems. For healthy sellers it uses the three choices above. Change them to match how your plans really work.</div>
+<div class="opts"><div><label for="rdays">Report covers (days)</label><input id="rdays" type="number" min="1" placeholder="Optional"></div></div>
+<div class="small">Plan prices are built in (in USD). Leave the report days blank to read them from the report.</div>
+</details>
+<div class="opts"><button id="go">Run analysis</button></div>
+<div id="err" class="err" role="alert"></div>
+</div>
+
+<div id="out" class="hidden">
+<h2>Performance overview</h2>
+<div class="kpis" id="kpis"></div>
+<div id="acosnote"></div>
+<h2>Account snapshot</h2>
+<div id="snap"></div>
+
+<h2>Where the budget is leaking</h2>
+<div class="scroll"><table id="t1"></table></div>
+
+<h2>Campaigns losing the most</h2>
+<div class="scroll"><table id="t2"></table></div>
+
+<h2>Proven winners to scale</h2>
+<div class="scroll"><table id="t3"></table></div>
+
+<h2>Your optimization plan</h2>
+<div id="plan"></div>
+
+<h2>Services that fit this seller</h2>
+<div id="svcrec"></div>
+
+<h2>Recommended plan</h2>
+<div id="tier"></div>
+<div id="rec"></div>
+
+<h2>Full meeting talk track</h2>
+<div class="pitch" id="pitch"></div>
+<div class="opts"><button id="copy" class="ghost">Copy talk track</button></div>
+</div>
+</main>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function num(v){if(typeof v==='number')return v;var n=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n}
+function findKey(keys,tests){for(var t=0;t<tests.length;t++){for(var k=0;k<keys.length;k++){if(tests[t](keys[k].toLowerCase()))return keys[k]}}return null}
+var cur='$';
+function m(n){return cur+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+function pct(n){return (n*100).toFixed(1)+'%'}
+
+$('go').addEventListener('click',function(){
+  $('err').textContent='';
+  var file=$('f').files[0];
+  if(!file){$('err').textContent='Choose a Search Term Report file first.';return}
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      analyze(rows);
+    }catch(x){$('err').textContent='Could not read that file. Export the Search Term Report as CSV or XLSX and try again.'}
+  };
+  r.readAsArrayBuffer(file);
+});
+
+function analyze(rows){
+  if(!rows.length){$('err').textContent='The file has no rows.';return}
+  cur=$('cur').value;
+  var keys=Object.keys(rows[0]);
+  var K={
+    term:findKey(keys,[function(k){return k==='customer search term'},function(k){return k.indexOf('search term')>-1}]),
+    spend:findKey(keys,[function(k){return k==='spend'},function(k){return k.indexOf('spend')>-1},function(k){return k==='cost'}]),
+    clicks:findKey(keys,[function(k){return k==='clicks'}]),
+    impr:findKey(keys,[function(k){return k==='impressions'}]),
+    orders:findKey(keys,[function(k){return k.indexOf('total orders')>-1},function(k){return k.indexOf('orders')>-1}]),
+    sales:findKey(keys,[function(k){return k.indexOf('total sales')>-1},function(k){return k.indexOf('sales')>-1&&k.indexOf('other')<0}]),
+    camp:findKey(keys,[function(k){return k==='campaign name'},function(k){return k.indexOf('campaign')>-1}])
+  };
+  var miss=[];['term','spend','clicks','orders','sales'].forEach(function(n){if(!K[n])miss.push(n)});
+  if(miss.length){$('err').textContent='Missing columns: '+miss.join(', ')+'. Make sure this is a Sponsored Products Search Term Report.';return}
+
+  var minC=num($('minc').value)||10, TG=targetAcos(), tacos=TG.value;
+  var terms={},camps={},T={spend:0,sales:0,clicks:0,orders:0,impr:0};
+  rows.forEach(function(r){
+    var t=String(r[K.term]).trim().toLowerCase(); if(!t)return;
+    var s=num(r[K.spend]),c=num(r[K.clicks]),o=num(r[K.orders]),sl=num(r[K.sales]),im=K.impr?num(r[K.impr]):0;
+    T.spend+=s;T.sales+=sl;T.clicks+=c;T.orders+=o;T.impr+=im;
+    var a=terms[t]||(terms[t]={t:t,spend:0,clicks:0,orders:0,sales:0});
+    a.spend+=s;a.clicks+=c;a.orders+=o;a.sales+=sl;
+    if(K.camp){var cn=String(r[K.camp]);var b=camps[cn]||(camps[cn]={t:cn,spend:0,wasted:0,sales:0,orders:0});b.spend+=s;b.sales+=sl;b.orders+=o;if(o===0&&c>0)b.wasted+=s}
+  });
+  var list=Object.keys(terms).map(function(k){return terms[k]});
+  var waste=list.filter(function(x){return x.orders===0&&x.clicks>=minC}).sort(function(a,b){return b.spend-a.spend});
+  var wasteAll=list.filter(function(x){return x.orders===0&&x.clicks>0});
+  var wSpend=waste.reduce(function(s,x){return s+x.spend},0);
+  var wAllSpend=wasteAll.reduce(function(s,x){return s+x.spend},0);
+  var winners=list.filter(function(x){return x.orders>=2&&x.sales>0&&x.spend/x.sales<=tacos}).sort(function(a,b){return b.sales-a.sales});
+  var acos=T.sales?T.spend/T.sales:0;
+
+  $('kpis').innerHTML=
+   kp('Total ad spend',m(T.spend))+kp('Ad sales',m(T.sales))+kp('Current ACOS vs healthy target '+pct(tacos),T.sales?pct(acos):'No sales',T.sales&&acos<=tacos?'good':'bad')+
+   kp('Wasted (≥'+minC+' clicks, 0 orders)',m(wSpend)+' · '+pct(T.spend?wSpend/T.spend:0),'bad')+
+   kp('All spend with 0 orders',m(wAllSpend)+' · '+pct(T.spend?wAllSpend/T.spend:0),'bad')+
+   kp('Terms already profitable',String(winners.length),'good');
+
+  var av=!T.sales?'The ads produced no sales in this report, so ACOS cannot be calculated. Fix this first.':(acos<=tacos*0.8?'On point and healthy. There is room to scale: the recommended plan below shows how.':(acos<=tacos?'On point. It is within the healthy target, so scaling is possible while keeping profit.':(acos<=tacos*1.3?'A little above the healthy target. Fix the waste first, then scale.':'Above the healthy target. Fix first: this is where ad money is being lost.')));
+  $('acosnote').innerHTML='<div class="panel" style="margin-top:12px"><b>Current ACOS: '+(T.sales?pct(acos):'none')+' against a healthy target of '+pct(tacos)+'.</b><div style="margin-top:6px">'+esc(av)+'</div><div class="small" style="margin-top:8px">'+esc(TG.note)+'</div></div>';
+  renderSnap(rows,keys,K);
+  $('t1').innerHTML=tbl(['Search term','Clicks','Spend','Orders'],waste.slice(0,15).map(function(x){return [x.t,x.clicks,m(x.spend),x.orders]}),2);
+  var cl=Object.keys(camps).map(function(k){return camps[k]}).sort(function(a,b){return b.wasted-a.wasted}).slice(0,8);
+  $('t2').innerHTML=K.camp?tbl(['Campaign','Spend','Wasted','Share wasted'],cl.map(function(x){return [x.t,m(x.spend),m(x.wasted),pct(x.spend?x.wasted/x.spend:0)]}),2):'<tr><td>No campaign column in this report.</td></tr>';
+  $('t3').innerHTML=tbl(['Search term','Orders','Sales','ACOS'],winners.slice(0,10).map(function(x){return [x.t,x.orders,m(x.sales),pct(x.spend/x.sales)]}),-1);
+
+  var P=makePlan(list,waste,winners,cl,T,tacos,minC);
+  renderPlan(P);
+  var R=recommend({T:T,acos:acos,wSpend:wSpend,waste:waste,winners:winners,tacos:tacos,P:P});
+  renderRec(R);
+  renderSvcs(R);
+  lastD={T:T,acos:acos,wSpend:wSpend,wAllSpend:wAllSpend,waste:waste,winners:winners,minC:minC,tacos:tacos,cl:cl,hasCamp:!!K.camp,plan:P,rec:R};
+  lastD.tier=tierOf(lastD);renderTier(lastD);
+  $('pitch').textContent=buildPitch(lastD);
+  $('out').classList.remove('hidden');
+  $('out').scrollIntoView({behavior:'smooth'});
+}
+function renderSvcs(R){
+  var d=R.d,T=d.T;
+  var feats=[];
+  R.plans.forEach(function(p){p.feats.forEach(function(f){if(feats.indexOf(f)<0)feats.push(f)})});
+  if(!feats.length){$('svcrec').innerHTML='<div class="panel">Paste your services in the box at the top. This section fills in as soon as you paste.</div>';return}
+  var say={
+    waste:'“'+m(d.wSpend)+' went to search terms that got clicks and no orders. Stopping that needs no extra budget, only a cleanup. You will see it in your next report.”',
+    acos:'“Your ACOS is '+(T.sales?pct(d.acos):'undefined')+' and the target is '+Math.round(d.tacos*100)+'%. Adjusting bids lowers the cost of each sale without cutting the terms that already sell.”',
+    harvest:'“You already have '+d.winners.length+' terms that convert at a profit. We give them more budget so your money follows what works.”',
+    structure:'“'+d.P.badC.length+' of your campaigns waste over 30% of their spend. Fixing the structure stops them competing with each other.”',
+    report:'“You get a regular report built from the same Seller Central data you shared today, so you can check progress yourself.”'
+  };
+  var proof={waste:'Share of spend wasted in the next Search Term Report.',acos:'ACOS in the next Search Term Report.',harvest:'Orders and sales from the terms we moved.',structure:'Wasted share per campaign.',report:'Report delivered on schedule, matching Seller Central.'};
+  var needs=R.needs.filter(function(n){return n.w>0}).sort(function(a,b){return b.w-a.w});
+  var h='';
+  needs.forEach(function(n){
+    var match=feats.filter(function(f){var x=f.toLowerCase();return n.kw.some(function(k){return x.indexOf(k)>-1})}).slice(0,4);
+    var pr=n.w>=4?'High priority':(n.w>=2?'Medium priority':'Supporting');
+    h+='<div class="panel" style="margin-top:12px"><b>'+esc(n.label.charAt(0).toUpperCase()+n.label.slice(1))+' – '+pr+'</b>';
+    h+='<div style="margin-top:8px"><b>Why this seller needs it:</b> '+esc(n.why)+'</div>';
+    h+='<div style="margin-top:8px"><b>Your services that cover it:</b> '+(match.length?esc(match.join('; ')):'None of the services you listed clearly covers this. Be honest about it and say what you can do.')+'</div>';
+    h+='<div style="margin-top:8px"><b>How to say it:</b> '+esc(say[n.id])+'</div>';
+    h+='<div style="margin-top:8px"><b>How they can check the result:</b> '+esc(proof[n.id])+'</div></div>';
+  });
+  $('svcrec').innerHTML=h||'<div class="panel">This report shows no clear need that your services address.</div>';
+}
+var reportDays=0;
+function parseDate(v){
+  if(v===''||v==null)return null;
+  if(typeof v==='number'&&v>20000&&v<80000)return new Date(Math.round((v-25569)*86400000));
+  var s=String(v).trim(),mm=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if(mm){
+    var a=+mm[1],b=+mm[2],y=+mm[3],dd,mo;
+    if(a>12){dd=a;mo=b}else if(b>12){mo=a;dd=b}else if(cur==='$'){mo=a;dd=b}else{dd=a;mo=b}
+    return new Date(Date.UTC(y,mo-1,dd));
+  }
+  var t=Date.parse(s);
+  if(isNaN(t))return null;
+  var dt=new Date(t);
+  return new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));
+}
+function renderSnap(rows,keys,K){
+  var tgK=findKey(keys,[function(k){return k==='targeting'}]);
+  var dK=findKey(keys,[function(k){return k==='date'},function(k){return k==='start date'},function(k){return k.indexOf('date')>-1&&k.indexOf('end')<0}]);
+  var DAY=86400000,h='';
+  function sum(sub){
+    var t={spend:0,sales:0,orders:0},tm={};
+    sub.forEach(function(r){
+      var s=num(r[K.spend]),c=num(r[K.clicks]),o=num(r[K.orders]);
+      t.spend+=s;t.sales+=num(r[K.sales]);t.orders+=o;
+      var k=String(r[K.term]).trim().toLowerCase(),a=tm[k]||(tm[k]={c:0,o:0,s:0});
+      a.c+=c;a.o+=o;a.s+=s;
+    });
+    var w=0;Object.keys(tm).forEach(function(k){if(tm[k].o===0&&tm[k].c>0)w+=tm[k].s});
+    t.w=w;return t;
+  }
+  var roas=function(x){return x.spend?(x.sales/x.spend).toFixed(2)+'x':'-'};
+  var acs=function(x){return x.sales?pct(x.spend/x.sales):'-'};
+  var wp=function(x){return x.spend?pct(x.w/x.spend):'-'};
+  var all=sum(rows);
+  if(K.camp){
+    var cm={};
+    rows.forEach(function(r){
+      var n=String(r[K.camp]).trim();if(!n)return;
+      var c=cm[n]||(cm[n]={auto:false,man:false,spend:0,sales:0,w:0});
+      var tg=tgK?String(r[tgK]).trim().toLowerCase():'';
+      if(/^(close-match|loose-match|substitutes|complements)$/.test(tg))c.auto=true;else if(tg)c.man=true;
+      var s=num(r[K.spend]),cl=num(r[K.clicks]),o=num(r[K.orders]);
+      c.spend+=s;c.sales+=num(r[K.sales]);if(o===0&&cl>0)c.w+=s;
+    });
+    var by={Automatic:{n:0,spend:0,sales:0,w:0},Manual:{n:0,spend:0,sales:0,w:0},Unknown:{n:0,spend:0,sales:0,w:0}};
+    Object.keys(cm).forEach(function(n){
+      var c=cm[n],t;
+      if(c.auto)t='Automatic';else if(c.man)t='Manual';else{var ln=n.toLowerCase();t=/auto/.test(ln)?'Automatic':(/manual|exact|phrase|broad/.test(ln)?'Manual':'Unknown')}
+      var b=by[t];b.n++;b.spend+=c.spend;b.sales+=c.sales;b.w+=c.w;
+    });
+    var total=Object.keys(cm).length;
+    h+='<div class="kpis">'+kp('Campaigns',String(total))+kp('Automatic campaigns',String(by.Automatic.n))+kp('Manual campaigns',String(by.Manual.n))+kp('Orders so far',String(Math.round(all.orders)))+kp('Ad sales so far',m(all.sales))+'</div>';
+    var types=['Automatic','Manual'];if(by.Unknown.n)types.push('Unknown');
+    h+='<h3 style="margin:20px 0 10px;font-size:16px">Automatic vs manual campaigns</h3><div class="scroll"><table>'+tbl(['Type','Campaigns','Spend','Sales','ACOS','Spend with no orders'],types.map(function(k){var b=by[k];return [k,b.n,m(b.spend),m(b.sales),b.sales?pct(b.spend/b.sales):'-',b.spend?pct(b.w/b.spend):'-']}),-1)+'</table></div>';
+    if(by.Unknown.n)h+='<div class="small">Unknown: the report does not say whether these campaigns are automatic or manual.</div>';
+  }else h+='<div class="panel">This report has no campaign column, so campaigns cannot be counted.</div>';
+  var dates=dK?rows.map(function(r){return parseDate(r[dK])}):[];
+  var ok=dates.filter(Boolean),mn=null,mx=null;
+  ok.forEach(function(d){if(mn===null||d<mn)mn=d;if(mx===null||d>mx)mx=d});
+  var span=mn&&mx?Math.round((mx-mn)/DAY)+1:0;
+  if(span>1){
+    h+='<h3 style="margin:20px 0 10px;font-size:16px">Last 30, 60 and 90 days</h3><p class="small">Report covers '+mn.toISOString().slice(0,10)+' to '+mx.toISOString().slice(0,10)+' ('+span+' days). Windows count back from the last date in the report. Wasted spend is spend on search terms that had clicks and no orders in that window.</p>';
+    var cols=[30,60,90].map(function(N){
+      var cut=mx.getTime()-(N-1)*DAY;
+      var sub=rows.filter(function(r,i){return dates[i]&&dates[i].getTime()>=cut});
+      return {head:'Last '+N+' days'+(span<N?' (only '+span+' days of data)':''),s:sum(sub)};
+    });
+    cols.push({head:'Whole report',s:all});
+    var heads=['Metric'].concat(cols.map(function(c){return c.head}));
+    var rws=[['Ad spend'].concat(cols.map(function(c){return m(c.s.spend)})),['Ad sales'].concat(cols.map(function(c){return m(c.s.sales)})),['Orders'].concat(cols.map(function(c){return Math.round(c.s.orders)})),['ACOS'].concat(cols.map(function(c){return acs(c.s)})),['ROAS (sales per '+cur+'1 spent)'].concat(cols.map(function(c){return roas(c.s)})),['Wasted spend'].concat(cols.map(function(c){return m(c.s.w)})),['Wasted share of spend'].concat(cols.map(function(c){return wp(c.s)}))];
+    h+='<div class="scroll"><table>'+tbl(heads,rws,-1)+'</table></div>';
+  }else{
+    h+='<div class="panel" style="margin-top:12px"><b>No 30, 60 or 90 day split yet.</b><div style="margin-top:6px">This report is one summary for a single period, so it cannot be split by date. In Seller Central, run the Search Term Report with the time unit set to Daily, and the tool will show the last 30, 60 and 90 days.</div></div>';
+  }
+  reportDays=span>1?span:0;
+  $('snap').innerHTML=h;
+}
+function targetAcos(){
+  var seller=num($('tacos').value)/100,mg=num($('margin').value)/100,v,note;
+  var P=function(x){return (x*100).toFixed(0)+'%'};
+  if(mg>0){
+    var be=mg,cap=Math.max(be*0.7,be-0.05),healthy=be>=0.25?be-0.10:be*0.7;
+    if(seller>0){v=Math.min(seller,cap);note=seller>cap?'The break-even ACOS is '+P(be)+', which equals the seller’s profit margin. The seller asked for '+P(seller)+', which is too close to break-even, so the tool uses '+P(v)+' to keep ads profitable.':'The break-even ACOS is '+P(be)+', which equals the seller’s profit margin. The tool uses the seller’s own target of '+P(v)+', which is safely below it.'}
+    else{v=healthy;note='The break-even ACOS is '+P(be)+', which equals the seller’s profit margin. The healthy target is set below it at '+P(v)+', so every ad sale still leaves profit.'}
+  }else{
+    if(seller>0){v=Math.min(seller,0.30);note=seller>0.30?'The seller asked for '+P(seller)+', but without their profit margin the tool caps the target at 30% to stay on the healthy side.':'The tool uses the seller’s own target of '+P(v)+'. Add their profit margin to check that it is below their break-even ACOS.'}
+    else{v=0.25;note='No target was given, so the tool uses a healthy default of 25%. Amazon has no single official ACOS number: a good ACOS is below the seller’s break-even ACOS, which equals their profit margin. Add the margin for a precise target.'}
+  }
+  return {value:v,note:note};
+}
+function usd(n){return '$'+Math.round(n).toLocaleString()}
+function planFee(pn,M){
+  if(pn==='Standard')return {fee:499};
+  if(pn==='AutoFix')return M<=2500?{fee:1860}:{fee:null,note:'AutoFix covers ad spend up to $2,500 a month.'};
+  var B=[[3000,1500],[6000,1715],[10000,1900],[15000,2100],[25000,2550],[100000,5300],[200000,null]];
+  for(var i=0;i<B.length;i++){if(M<=B[i][0])return B[i][1]?{fee:B[i][1]}:{fee:null,note:'There is no listed price between $100,000 and $200,000 of monthly ad spend, so quote this one manually.'}}
+  return {fee:8000};
+}
+function invest(d,t){
+  var T=d.T,P=d.plan||d.P,pn=t.name;
+  var given=num($('rdays').value),days=given||reportDays||30;
+  var f=30/days,M=T.spend*f,rec=(P.negSave+P.cutSave)*f;
+  var pf=planFee(pn,M),fee=pf.fee;
+  var mg=num($('margin').value)/100,roasv=T.spend?T.sales/T.spend:0;
+  var rows=[],L=[],rs,why;
+  var feeTxt=fee?usd(fee)+' a month':'a custom quote';
+  rows.push(['Plan fee ('+pn+')',fee?usd(fee):'Custom quote']);
+  rows.push(['Ad spend now (a month, estimated)',m(M)]);
+  if(t.mode==='fix'){
+    rs=Math.max(M*0.5,M-rec);
+    why='Do not add ad budget yet. Remove the wasted spend first, and raise the budget once ACOS reaches the target.';
+    rows.push(['Recommended ad spend',m(rs)]);
+    rows.push(['Estimated waste removed per month',m(rec)]);
+    if(fee)rows.push(['Plan fee against waste removed',fee<=rec?'The waste removed covers the fee, with '+m(rec-fee)+' left over':'The fee is higher than the waste removed, so the case rests on growth later']);
+  }else{
+    var g=t.sc>=4?0.3:(t.sc>=2?0.2:0.1);
+    rs=M*(1+g);
+    var extra=rs-M,es=extra*roasv;
+    why='Raise the ad budget in steps of about '+Math.round(g*100)+'%, and only on campaigns and terms that are under the target ACOS.';
+    rows.push(['Recommended ad spend',m(rs)]);
+    rows.push(['Extra ad spend',m(extra)]);
+    if(roasv)rows.push(['Extra sales if ACOS holds (estimate)',m(es)]);
+    if(mg>0&&roasv){var ep=es*mg-extra;rows.push(['Extra profit after ads (estimate)',m(ep)]);if(fee)rows.push(['After the plan fee',m(ep-fee)])}
+  }
+  if(fee&&M)rows.push(['Plan fee as a share of ad spend',pct(fee/M)]);
+  var prc=[['Standard',usd(499)],['AutoFix',M<=2500?usd(1860):'Not offered above $2,500 ad spend'],['Premium',planFee('Premium',M).fee?usd(planFee('Premium',M).fee):'Custom quote']];
+  var prows=prc.map(function(x){return [x[0]+(x[0]===pn?' (recommended)':''),x[1]]});
+  L.push('• Suggested investment: the '+pn+' plan at '+feeTxt+', and about '+m(rs)+' a month on ads, against about '+m(M)+' now.');
+  L.push('• '+why);
+  L.push('• These figures are estimates from this report, not guarantees. We review them at day 30, 60 and 90.');
+  var h='<div class="panel" style="margin-top:12px"><b>Recommended investment per month</b><div class="scroll" style="margin-top:8px"><table>'+tbl(['Item','Amount'],rows,-1)+'</table></div><div style="margin-top:8px">'+esc(why)+'</div>';
+  h+='<div style="margin-top:14px"><b>Plan pricing at this ad spend</b></div><div class="scroll" style="margin-top:8px"><table>'+tbl(['Plan','Monthly fee'],prows,-1)+'</table></div>';
+  if(pf.note)h+='<div class="small" style="margin-top:8px">'+esc(pf.note)+'</div>';
+  h+='<div class="small" style="margin-top:8px">Based on '+days+' days of data'+(given||reportDays?'':' (assumed, since the report has no dates; set the days above if different)')+', scaled to a month. Plan fees are in USD. These are estimates, not guarantees.</div></div>';
+  return {html:h,lines:L};
+}
+function investOld(d,t){
+  var T=d.T,P=d.plan||d.P,pn=t.name;
+  var given=num($('rdays').value),days=given||reportDays||30;
+  var f=30/days,M=T.spend*f,rec=(P.negSave+P.cutSave)*f;
+  var fee={Standard:num($('feeStd').value),AutoFix:num($('feeAuto').value),Premium:num($('feePrem').value)}[pn];
+  var mg=num($('margin').value)/100,roasv=T.spend?T.sales/T.spend:0;
+  var rows=[],L=[],rs,why;
+  rows.push(['Plan fee ('+pn+')',fee?m(fee):'Enter the plan price at the top']);
+  rows.push(['Ad spend now (a month, estimated)',m(M)]);
+  if(t.mode==='fix'){
+    rs=Math.max(M*0.5,M-rec);
+    why='Do not add ad budget yet. Remove the wasted spend first, and raise the budget once ACOS reaches the target.';
+    rows.push(['Recommended ad spend',m(rs)]);
+    rows.push(['Estimated waste removed per month',m(rec)]);
+    if(fee)rows.push(['Plan fee against waste removed',fee<=rec?'The waste removed covers the fee, with '+m(rec-fee)+' left over':'The fee is higher than the waste removed, so the case rests on growth later']);
+  }else{
+    var g=t.sc>=4?0.3:(t.sc>=2?0.2:0.1);
+    rs=M*(1+g);
+    var extra=rs-M,es=extra*roasv;
+    why='Raise the ad budget in steps of about '+Math.round(g*100)+'%, and only on campaigns and terms that are under the target ACOS.';
+    rows.push(['Recommended ad spend',m(rs)]);
+    rows.push(['Extra ad spend',m(extra)]);
+    if(roasv)rows.push(['Extra sales if ACOS holds (estimate)',m(es)]);
+    if(mg>0&&roasv){var ep=es*mg-extra;rows.push(['Extra profit after ads (estimate)',m(ep)]);if(fee)rows.push(['After the plan fee',m(ep-fee)])}
+  }
+  if(fee&&M)rows.push(['Plan fee as a share of ad spend',pct(fee/M)]);
+  L.push('• Suggested investment: the '+pn+' plan'+(fee?' at '+m(fee)+' a month':'')+' and about '+m(rs)+' a month on ads, against about '+m(M)+' now.');
+  L.push('• '+why);
+  L.push('• These figures are estimates from this report, not guarantees. We review them at day 30, 60 and 90.');
+  var h='<div class="panel" style="margin-top:12px"><b>Recommended investment per month</b><div class="scroll" style="margin-top:8px"><table>'+tbl(['Item','Amount'],rows,-1)+'</table></div><div style="margin-top:8px">'+esc(why)+'</div><div class="small" style="margin-top:8px">Based on '+days+' days of data'+(given||reportDays?'':' (assumed, since the report has no dates; set the days above if different)')+', scaled to a month. These are estimates, not guarantees.</div></div>';
+  return {html:h,lines:L};
+}
+['rdays'].forEach(function(id){
+  try{var sv2=localStorage.getItem(id);if(sv2&&!$(id).value&&id!=='rdays')$(id).value=sv2}catch(x){}
+  $(id).addEventListener('input',function(){
+    try{if(id!=='rdays')localStorage.setItem(id,$(id).value)}catch(x){}
+    clearTimeout(tmr);tmr=setTimeout(refreshRec,400);
+  });
+});
+function tierOf(d){
+  var P=d.plan||d.P,T=d.T,ws=T.spend?d.wSpend/T.spend:0,r=[],s=0;
+  if(ws>=0.25){s+=3;r.push('Wasted spend is high at '+pct(ws)+' ('+m(d.wSpend)+').')}
+  else if(ws>=0.12){s+=2;r.push('Wasted spend is '+pct(ws)+' ('+m(d.wSpend)+'), which is a real leak.')}
+  else if(ws>=0.05){s+=1;r.push('Wasted spend is '+pct(ws)+' ('+m(d.wSpend)+'), a moderate leak.')}
+  else r.push('Wasted spend is low at '+pct(ws)+'.');
+  if(!T.sales&&T.spend>0){s+=3;r.push('The ads produced no sales in this report.')}
+  else if(d.acos>d.tacos*1.5){s+=2;r.push('ACOS is '+pct(d.acos)+' against a '+Math.round(d.tacos*100)+'% target.')}
+  else if(d.acos>d.tacos){s+=1;r.push('ACOS is '+pct(d.acos)+', slightly above the '+Math.round(d.tacos*100)+'% target.')}
+  else r.push('ACOS is within the target.');
+  if(P.badC.length>=3){s+=2;r.push(P.badC.length+' campaigns waste over 30% of their spend.')}
+  else if(P.badC.length>=1){s+=1;r.push(P.badC.length+' campaign(s) waste over 30% of their spend.')}
+  if(d.winners.length>=5){s+=1;r.push(d.winners.length+' proven terms are ready to scale.')}
+  var sc=0;
+  if(T.sales&&d.acos<=d.tacos)sc+=1;
+  if(T.sales&&d.acos<=d.tacos*0.7)sc+=1;
+  if(d.winners.length>=3)sc+=1;
+  if(d.winners.length>=8)sc+=1;
+  if(ws<0.08)sc+=1;
+  var nm=s>=6?'Premium':(s>=3?'AutoFix':(sc>=4?$('planStrong').value:(sc>=2?$('planSteady').value:$('planKeep').value)));
+  var dd=num($('rdays').value)||reportDays||30,Mo=T.spend*30/dd;
+  if(nm==='AutoFix'&&Mo>2500){nm='Premium';r.push('AutoFix covers ad spend up to $2,500 a month, and this seller spends about '+m(Mo)+', so Premium is the fit.')}
+  return {name:nm,score:s,sc:sc,mode:s>=3?'fix':'scale',reasons:r,ws:ws};
+}
+function renderTier(d){
+  var t=d.tier,P=d.plan||d.P,T=d.T,ws=t.ws,pr=P.negSave+P.cutSave,tz=Math.round(d.tacos*100),pn=t.name;
+  var per=function(x){return cur+Math.round(x)};
+  var because={
+    Standard:'Your account is mostly healthy. You need to protect what works and scale it, not a big fix.',
+    AutoFix:'You have a real, ongoing leak. It will not fix itself, and it comes back every period, so the fixes have to be applied again and again, not once.',
+    Premium:'You have several problems at once. They affect each other, so they need to be handled together with hands-on management.'
+  };
+  var lower={
+    Standard:'AutoFix or Premium would cost more than this account needs, because the problems are small.',
+    AutoFix:'Standard alone would not keep up, because the waste returns unless fixes keep being applied. Premium is not needed yet; move up if spend or campaigns grow.',
+    Premium:'Standard or AutoFix would fix single issues, but this account has several problems at once and needs hands-on management.'
+  };
+  var steps=[];
+  if(P.negs.length)steps.push('Week 1: block '+P.negs.length+' wasted search terms'+(P.negSave?' (up to '+m(P.negSave)+' back per report period).':'.'));
+  if(P.cut.length)steps.push('Week 2: lower bids on '+P.cut.length+' terms that sell but cost too much'+(P.cutSave?' (about '+m(P.cutSave)+').':'.'));
+  if(pn==='Premium'&&P.badC.length)steps.push('Weeks 2 and 3: restructure the '+P.badC.length+' campaigns that waste over 30% of their spend.');
+  if(d.winners.length)steps.push('Weeks 3 and 4: move '+Math.min(d.winners.length,10)+' proven terms into exact match, so budget follows what sells.');
+  steps.push(pn==='Standard'?'Every month: review the report and clean up before small leaks grow.':'Every week after that: review new search terms so the waste does not come back.');
+  var up={Standard:'AutoFix',AutoFix:'Premium',Premium:''}[pn],down={Standard:'',AutoFix:'Standard',Premium:'AutoFix'}[pn];
+  steps.push('Day 30: open the same report and compare. Wasted spend should go from about '+per(ws*100)+' to about '+per(ws*50)+' of every '+per(100)+' spent, and ACOS should move toward '+tz+'%.');
+  steps.push('Day 60: second check. Fix what has not moved, and decide what to scale.');
+  steps.push('Day 90: full review against today’s numbers. Then decide together: continue'+(up?', move up to '+up:'')+(down?', or step down to '+down:'')+'.');
+  var top=d.waste[0]?' For example, “'+d.waste[0].t+'” cost '+m(d.waste[0].spend)+' with '+d.waste[0].clicks+' clicks and no orders.':'';
+  var S=[];
+  S.push('1. START WITH TRUST');
+  S.push('“Before I recommend anything, I want to be clear: I am not here to sell you something you do not need. I will show you what I found in your own report. You can check every number in your Seller Central, and then you decide.”');
+  S.push('');
+  S.push('2. SHOW WHAT YOU FOUND');
+  S.push('“Of every '+per(100)+' you spend on ads, about '+per(ws*100)+' goes to search terms that got clicks and never produced a sale. In this report that is '+m(d.wSpend)+'.'+top+' Your ACOS is '+(T.sales?pct(d.acos):'undefined')+', and a healthy target for you is about '+tz+'%.”');
+  S.push('');
+  S.push('3. WHAT IT COSTS IF NOTHING CHANGES');
+  S.push('“If we change nothing, next month will look the same. That is money you already chose to spend on ads, and part of it is not working for you.”');
+  S.push('');
+  S.push('4. WHY '+pn.toUpperCase()+' FITS YOU');
+  S.push('“'+because[pn]+' That is why I would suggest '+pn+', and not a bigger or smaller plan.”');
+  S.push('');
+  S.push('5. HOW IT WILL HELP YOU');
+  S.push('“Here is exactly what we would do.”');
+  steps.forEach(function(s){S.push('• '+s)});
+  S.push('');
+  S.push('6. HOW WE KEEP IT HONEST');
+  S.push('“Every number comes from your own Seller Central. We start from today’s figures, and we look at the same report together at day 7, 14, 30, 60 and 90. If a change does not help, we tell you and fix it. We do not hide it.”');
+  S.push('');
+  S.push('7. IF THEY HESITATE');
+  S.push('• “I can do this myself.” → “You can, and the list I showed you is a good place to start. The question is whether you have the hours every week, because this is not a one-time fix.”');
+  S.push('• “I need to think about it.” → “Of course. Keep the terms I showed you and check them yourself. If you like, we start with the cleanup only, so you see a first result before deciding more.”');
+  S.push('• “Do you guarantee results?” → “I cannot promise an exact number, because results depend on your market. What I can promise is that we measure the same things from today, report honestly, and tell you what moved and what did not.”');
+  S.push('');
+  S.push('8. THE 90-DAY AGREEMENT');
+  S.push('“Here is what I suggest. Use the '+pn+' plan for 90 days and judge it on your own numbers. We check the same report at day 30, 60 and 90. At day 90 we sit down together and decide based on what the results show:');
+  if(up)S.push('• If the waste has dropped and there is more to grow, we can move up to '+up+'.');
+  if(down)S.push('• If the account is healthy and stable, we can step down to '+down+' so your cost stays in line.');
+  S.push('• If it is working as it is, we simply continue.');
+  S.push('You are not committing to a bigger plan up front. I would rather you keep a plan because it works than because you felt pushed. Does that sound fair?”');
+  S.push('');
+  S.push('IF THEY SAY YES: before the call ends, agree the start date, which report they will share each time, and the three review dates (day 30, 60 and 90).');
+  var fixPlan=t.score>=6?'Premium':'AutoFix';
+  var mo2=T.spend*30/(num($('rdays').value)||reportDays||30);
+  if(fixPlan==='AutoFix'&&mo2>2500)fixPlan='Premium';
+  var scaleLabel=t.sc>=4?'Strong':(t.sc>=2?'Moderate':'Limited');
+  var scalePlan=t.sc>=4?$('planStrong').value:(t.sc>=2?$('planSteady').value:$('planKeep').value);
+  if(scalePlan==='AutoFix'&&mo2>2500)scalePlan='Premium';
+  var two='<div class="row" style="margin-top:12px"><div class="panel"><b>Fix track: stop the waste</b><div style="margin-top:6px">'+(t.score>=3?'Priority for this seller. ':'Low priority. ')+'Wasted spend is '+pct(ws)+' ('+m(d.wSpend)+'). Plan: <b>'+fixPlan+'</b>.</div></div><div class="panel"><b>Scale track: grow what works</b><div style="margin-top:6px">'+scaleLabel+' scaling potential. '+d.winners.length+' proven terms, ACOS '+(T.sales?pct(d.acos):'undefined')+' against a '+tz+'% target. Plan: <b>'+scalePlan+'</b>.'+(t.mode==='fix'?' Offer this once the fix is working.':'')+'</div></div></div>';
+  var inv=invest(d,t);
+  var gi=[];
+  if(d.winners.length){var w0=d.winners[0];gi.push('Scale what already works: '+d.winners.length+' search terms convert at a profit. The best is “'+w0.t+'” with '+w0.orders+' orders at '+pct(w0.spend/w0.sales)+' ACOS. Move them to exact match and give them more budget.')}
+  if(T.sales&&d.acos<d.tacos*0.8)gi.push('Room to spend more: ACOS is '+pct(d.acos)+' against a '+tz+'% target, so budgets on the best campaigns can go up and still stay profitable.');
+  gi.push('Find new keywords: look for search terms close to your winners to bring in more orders.');
+  gi.push('Keep the account clean: a monthly review so small leaks do not return.');
+  var ideas=['more budget on the top-selling campaigns','Sponsored Brands or video ads for the best products','listing and image improvements to raise conversion','a monthly performance report with next steps'];
+  var addons='<div class="panel" style="margin-top:12px"><b>What you can offer them beyond the fix:</b><br>'+gi.map(function(x){return '• '+esc(x)}).join('<br>')+'<div class="small" style="margin-top:8px">Ideas to raise if your plans include them: '+esc(ideas.join('; '))+'.</div></div>';
+  if(t.mode==='scale'){
+    because[pn]='Your account is profitable, so the opportunity is to scale what already works while keeping waste low.';
+    lower[pn]='This account does not need a fix, so the goal is growth. A bigger plan only makes sense if the seller wants to scale faster or spend a lot more.';
+    steps=[];
+    if(P.negs.length)steps.push('Week 1: clear the '+P.negs.length+' small leaks'+(P.negSave?' (up to '+m(P.negSave)+' back per report period).':'.'));
+    if(d.winners.length)steps.push('Weeks 2 to 4: move '+Math.min(d.winners.length,10)+' proven terms into exact match and raise budget on the best campaigns.');
+    steps.push('Every month: review new search terms, remove new waste, and add new keywords close to your winners.');
+    steps.push('Day 30: open the same report and compare. Wasted spend should stay low or fall further, and ACOS should stay at or below '+tz+'%.');
+    steps.push('Day 60: check that the scaled terms keep selling at a profit, and decide what to scale next.');
+    steps.push('Day 90: full review against today’s numbers. Then decide together: continue'+(up?', or move up to '+up:'')+'.');
+    S=[];
+    S.push('1. START WITH TRUST');
+    S.push('“I looked at your report and I have good news: your account is in good shape. I will not tell you it needs a big fix. I will show you what is working, and where the next growth can come from.”');
+    S.push('');
+    S.push('2. WHAT IS WORKING');
+    S.push('“Only about '+per(ws*100)+' of every '+per(100)+' you spend on ads is wasted, which is '+m(d.wSpend)+' in this report. Your ACOS is '+(T.sales?pct(d.acos):'undefined')+' against a target of about '+tz+'%.'+(d.winners.length?' You already have '+d.winners.length+' search terms that sell at a profit.':'')+'”');
+    S.push('');
+    S.push('3. WHERE THE NEXT GROWTH COMES FROM');
+    gi.forEach(function(x){S.push('• '+x)});
+    S.push('');
+    S.push('4. WHY '+pn.toUpperCase()+' FITS YOU');
+    S.push('“You do not need a big fix. '+pn+' is the right plan to scale what already works while keeping waste low. Accounts drift over time: small leaks return and growth chances get missed. This protects what you built and grows it.”');
+    S.push('');
+    S.push('5. HOW IT WILL HELP YOU');
+    steps.forEach(function(s){S.push('• '+s)});
+    S.push('');
+    S.push('6. HOW WE KEEP IT HONEST');
+    S.push('“Every number comes from your own Seller Central. We start from today’s figures and look at the same report together at day 30, 60 and 90. If a change does not help, we tell you and fix it.”');
+    S.push('');
+    S.push('7. IF THEY HESITATE');
+    S.push('• “My account is fine, why pay?” → “That is exactly why it is a good time. Healthy accounts drift, and the growth chances in your own report, like the proven terms, go unused. This protects what works and scales it.”');
+    S.push('• “I need to think about it.” → “Of course. Keep the terms I showed you and check them yourself. If you like, we start with one growth step so you see a first result.”');
+    S.push('• “Do you guarantee results?” → “I cannot promise an exact number, because results depend on your market. I can promise that we measure the same things from today, report honestly, and tell you what moved and what did not.”');
+    S.push('');
+    S.push('8. THE 90-DAY AGREEMENT');
+    S.push('“Use the '+pn+' plan for 90 days and judge it on your own numbers. We check the same report at day 30, 60 and 90. At day 90 we decide together:');
+    S.push('• If it is working as it is, we simply continue.');
+    if(up)S.push('• If growth is picking up and you want more, we can move up to '+up+'.');
+    S.push('You are not committing to a bigger plan up front. I would rather you keep a plan because it works than because you felt pushed. Does that sound fair?”');
+    S.push('');
+    S.push('IF THEY SAY YES: before the call ends, agree the start date, which report they will share each time, and the three review dates (day 30, 60 and 90).');
+  }
+  var h='<div class="panel" style="border-color:var(--accent)"><b style="font-size:20px">Recommended plan: '+esc(pn)+'</b>';
+  h+='<div style="margin-top:6px">'+esc(because[pn])+'</div></div>';
+  h+=two;
+  h+='<h3 style="margin:20px 0 10px;font-size:16px">In simple numbers</h3><div class="kpis">'+kp('Wasted now, out of every '+per(100)+' spent',per(ws*100),'bad')+kp('Aim after 30 days',per(ws*50),'good')+kp('Money we aim to recover per report period (estimate)',pr?m(pr):'Small, account is mostly healthy','good')+'</div>';
+  h+='<div class="panel" style="margin-top:12px"><b>Why this plan fits:</b><br>'+t.reasons.map(esc).join('<br>')+'<div style="margin-top:8px"><b>Why not the others:</b> '+esc(lower[pn])+'</div></div>';
+  h+='<div class="panel" style="margin-top:12px"><b>How it will help them, step by step:</b><br>'+steps.map(function(s){return '• '+esc(s)}).join('<br>')+'</div>';
+  h+=inv.html;
+  h+=addons;
+  h+='<h3 style="margin:20px 0 10px;font-size:16px">Meeting script for this plan</h3><div class="pitch" id="tierpitch"></div><div class="opts"><button id="copytier" class="ghost">Copy meeting script</button></div>';
+  h+='<p class="small">The plan is chosen from the seller’s numbers. The recovery figure is an estimate that assumes next period looks like this one. Check that what you promise matches what the plan really includes.</p>';
+  $('tier').innerHTML=h;
+  inv.lines.length&&(S.push(''),S.push('9. THE NUMBERS TO SHARE'),inv.lines.forEach(function(x){S.push(x)}));
+  $('tierpitch').textContent=S.join('\n');
+  var b=$('copytier');
+  b.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText($('tierpitch').textContent);b.textContent='Copied';setTimeout(function(){b.textContent='Copy meeting script'},1500)};
+}
+function renderTierOld(d){
+  var t=d.tier,P=d.plan||d.P,T=d.T;
+  var lower={Standard:'AutoFix or Premium would cost more than this account needs. The problems are small.',AutoFix:'Standard alone would not keep up. The waste returns unless fixes are applied regularly. Premium is not needed yet; move up if spend or campaigns grow.',Premium:'Standard or AutoFix would fix single issues, but this account has several problems at once and needs hands-on management.'};
+  var say={
+    Standard:'“Your account is mostly healthy. Only '+pct(t.ws)+' of spend is wasted. Standard keeps it that way with regular checks and cleanup, so small leaks never turn into big ones.”',
+    AutoFix:'“'+m(d.wSpend)+' is leaking out of your ads this period, and it will keep leaking unless someone keeps fixing it. AutoFix applies the fixes regularly. You can check in your own report that the wasted share goes down.”',
+    Premium:'“Your account has several problems at once: '+pct(t.ws)+' of spend wasted, ACOS at '+(T.sales?pct(d.acos):'undefined')+' against a '+Math.round(d.tacos*100)+'% target, and '+P.badC.length+' campaigns losing money. That needs hands-on management. Premium covers all of it, and we start with a 30-day check against today’s numbers.”'
+  };
+  var mine=parsePlans($('svc').value).filter(function(p){var n=p.name.toLowerCase().replace(/\s/g,'');return n.indexOf(t.name.toLowerCase())>-1})[0];
+  var h='<div class="panel" style="border-color:var(--accent)"><b style="font-size:18px">Recommended: '+esc(t.name)+'</b>';
+  h+='<div style="margin-top:10px"><b>Why:</b><br>'+t.reasons.map(esc).join('<br>')+'</div>';
+  h+='<div style="margin-top:10px"><b>Why not the other plans:</b> '+esc(lower[t.name])+'</div>';
+  h+='<div style="margin-top:10px"><b>How to convince the seller:</b> '+esc(say[t.name])+'</div>';
+  h+='<div style="margin-top:10px"><b>Proof they can check:</b> '+esc('Compare the same Search Term Report in 30 days. Wasted spend should fall from '+m(d.wSpend)+' toward '+m(d.wSpend/2)+', and ACOS should move toward '+Math.round(d.tacos*100)+'%.')+'</div>';
+  if(mine)h+='<div style="margin-top:10px"><b>From your plan text:</b> '+esc(mine.feats.join('; '))+'</div>';
+  h+='<div class="small" style="margin-top:10px">This is chosen by simple rules on the seller’s numbers (score '+t.score+': 0 to 2 Standard, 3 to 5 AutoFix, 6 or more Premium). Check that what you promise matches what each plan really includes.</div></div>';
+  $('tier').innerHTML=h;
+}
+var lastD=null,tmr;
+function refreshRec(){
+  if(!lastD)return;
+  lastD.P=lastD.plan;
+  var R=recommend(lastD);
+  lastD.rec=R;
+  renderRec(R);renderSvcs(R);
+  lastD.tier=tierOf(lastD);renderTier(lastD);
+  $('pitch').textContent=buildPitch(lastD);
+}
+try{var sv=localStorage.getItem('plans_text');if(sv&&!$('svc').value)$('svc').value=sv}catch(x){}
+$('svc').addEventListener('input',function(){
+  try{localStorage.setItem('plans_text',$('svc').value)}catch(x){}
+  clearTimeout(tmr);tmr=setTimeout(refreshRec,400);
+});
+function parsePlans(t){
+  var blocks=t.split(/\n\s*\n/).map(function(b){return b.trim()}).filter(Boolean);
+  return blocks.map(function(b){
+    var ls=b.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+    return blocks.length>1?{name:ls[0],feats:ls.slice(1),lines:ls}:{name:'Your services',feats:ls,lines:ls};
+  });
+}
+function recommend(d){
+  var wShare=d.T.spend?d.wSpend/d.T.spend:0;
+  var needs=[
+    {id:'waste',label:'wasted spend cleanup',w:Math.min(5,1+Math.round(wShare*20)),kw:['negative','waste','cleanup','clean-up','search term','audit','irrelevant'],why:'Wasted spend is '+m(d.wSpend)+' ('+pct(wShare)+' of ad spend), so stopping the leak comes first.'},
+    {id:'acos',label:'bid and ACOS optimization',w:d.T.sales?(d.acos>d.tacos?Math.min(5,Math.round(d.acos/d.tacos*2)):0):5,kw:['bid','acos','optimi','budget'],why:'ACOS is '+(d.T.sales?pct(d.acos):'undefined (no sales)')+' against a '+Math.round(d.tacos*100)+'% target, so bids and budgets need tightening.'},
+    {id:'harvest',label:'keyword harvesting and scaling',w:d.winners.length>=3?3:(d.winners.length?1:0),kw:['harvest','exact','keyword research','expansion','scale','growth','new keyword'],why:d.winners.length+' search terms already convert under the target ACOS and should get more budget.'},
+    {id:'structure',label:'campaign restructuring',w:d.P.badC.length?2:0,kw:['structure','restructure','campaign','match type','ppc','setup'],why:d.P.badC.length+' campaigns waste more than 30% of their spend and need restructuring.'},
+    {id:'report',label:'regular reporting',w:1,kw:['report','dashboard','weekly','monthly','review','call'],why:'Regular reporting lets the seller check progress in their own Seller Central.'}
+  ];
+  var plans=parsePlans($('svc').value).map(function(p){
+    var score=0,hits={};
+    needs.forEach(function(n){
+      var ls=p.lines.filter(function(l){var x=l.toLowerCase();return n.kw.some(function(k){return x.indexOf(k)>-1})});
+      hits[n.id]=ls;score+=n.w*Math.min(2,ls.length);
+    });
+    p.score=score;p.hits=hits;return p;
+  });
+  var max=needs.reduce(function(s,n){return s+n.w*2},0)||1;
+  plans.sort(function(a,b){return b.score-a.score});
+  plans.forEach(function(p){p.fit=Math.round(p.score/max*100)});
+  return {plans:plans,needs:needs,d:d,wShare:wShare};
+}
+function renderRec(R){$('rec').innerHTML='';return;
+  if(!R.plans.length){$('rec').innerHTML='<div class="panel">Paste your plans in the box at the top (plan name first, blank line between plans). This section fills in as soon as you paste.</div>';return}
+  var d=R.d,T=d.T,best=R.plans[0],alt=R.plans[1],L=[];
+  L.push('RECOMMENDED: '+best.name);
+  L.push('');
+  L.push('Why it suits this seller:');
+  var any=false;
+  R.needs.forEach(function(n){if(n.w>0&&best.hits[n.id].length){any=true;L.push('• '+n.why+' The plan covers it with: '+best.hits[n.id].slice(0,2).join('; ')+'.')}});
+  if(!any)L.push('• No plan line matched this seller’s findings. Check that the plan text names what you do, such as negative keywords or bid optimization.');
+  var gaps=R.needs.filter(function(n){return n.w>=3&&!best.hits[n.id].length}).map(function(n){return n.label});
+  if(gaps.length){L.push('');L.push('Not covered by this plan: '+gaps.join(', ')+'. Say so openly, and offer '+(alt?alt.name:'a larger plan')+' or an add-on if it matters to them.')}
+  if(alt){L.push('');L.push('If they want to go further: '+alt.name+'.')}
+  L.push('');
+  L.push('MAKE IT PRACTICAL: A 30-DAY TEST THEY CAN CHECK THEMSELVES');
+  L.push('• Baseline today: spend '+m(T.spend)+', wasted '+m(d.wSpend)+' ('+pct(R.wShare)+'), ACOS '+(T.sales?pct(d.acos):'undefined')+'.');
+  L.push('• Target by day 30: wasted spend at or below '+m(d.wSpend/2)+' per period, which is half of today, and ACOS moving toward '+Math.round(d.tacos*100)+'%.');
+  L.push('• Day 1 to 3: add the negative list and fix the worst campaigns. Day 7: first check-in with a fresh Search Term Report. Day 14: review bid changes. Day 30: compare the same report with today’s baseline.');
+  L.push('• Every number comes from the seller’s own Seller Central report, so they can verify it without trusting us.');
+  L.push('');
+  L.push('SAY IT LIKE THIS');
+  L.push('“From your report, '+best.name+' is the best fit, because you have '+m(d.wSpend)+' going to terms that never convert and '+d.winners.length+' terms that already work. Let’s run it for 30 days and start from today’s numbers. We look at the same report together at day 7, 14 and 30. You will see in your own Seller Central whether the waste is falling. If it has not moved, we talk about what to change. Does that sound fair?”');
+  var tb='<div class="scroll"><table>'+tbl(['Plan','Fit with this seller'],R.plans.map(function(p){return [p.name,p.fit+'%']}),-1)+'</table></div>';
+  $('rec').innerHTML=tb+'<div class="pitch" id="recpitch" style="margin-top:12px"></div><div class="opts"><button id="copyrec" class="ghost">Copy recommendation</button></div><p class="small">Fit is a rough score from how many plan lines match what this report shows. Use your own judgment on price and the seller’s goals.</p>';
+  $('recpitch').textContent=L.join('\n');
+  var b=$('copyrec');
+  b.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText($('recpitch').textContent);b.textContent='Copied';setTimeout(function(){b.textContent='Copy recommendation'},1500)};
+}
+$('svcfile').addEventListener('change',function(){
+  var f=this.files[0];if(!f)return;
+  var n=f.name.toLowerCase(),msg=$('svcmsg');msg.textContent='Reading file...';
+  function done(t){$('svc').value=t.trim();$('svc').dispatchEvent(new Event('input'));msg.textContent='Loaded. Check the text: plan name first, then its features, with a blank line between plans.'}
+  function fail(){msg.textContent='Could not read that file. Paste the plan text into the box instead.'}
+  var r=new FileReader();
+  if(/\.pdf$/.test(n)){
+    r.onload=function(e){
+      if(!window.pdfjsLib){fail();return}
+      try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}catch(x){}
+      pdfjsLib.getDocument({data:new Uint8Array(e.target.result)}).promise.then(function(pdf){
+        var pages=[],chain=Promise.resolve();
+        for(var i=1;i<=pdf.numPages;i++){(function(i){chain=chain.then(function(){return pdf.getPage(i).then(function(pg){return pg.getTextContent()}).then(function(tc){var s='',y=null;tc.items.forEach(function(it){var yy=it.transform[5];if(y!==null&&Math.abs(yy-y)>2)s+='\n';s+=it.str+' ';y=yy});pages.push(s)})})})(i)}
+        return chain.then(function(){done(pages.join('\n'))});
+      }).catch(fail);
+    };
+    r.readAsArrayBuffer(f);
+  }else if(/\.(xlsx|xls|csv)$/.test(n)){
+    r.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+        var w=0;rows.forEach(function(x){w=Math.max(w,x.length)});
+        var out=[];
+        for(var c=0;c<w;c++){var col=rows.map(function(x){return String(x[c]||'').trim()}).filter(Boolean);if(col.length)out.push(col.join('\n'))}
+        done(out.join('\n\n'));
+      }catch(x){fail()}
+    };
+    r.readAsArrayBuffer(f);
+  }else{r.onload=function(e){done(String(e.target.result))};r.readAsText(f)}
+});
+function makePlan(list,waste,winners,cl,T,tacos,minC){
+  var asin=/^b0[0-9a-z]{8}$/;
+  var negs=waste.map(function(x){return x.t});
+  var asinNegs=negs.filter(function(t){return asin.test(t)});
+  var wordNegs=negs.filter(function(t){return !asin.test(t)});
+  var negSave=waste.reduce(function(s,x){return s+x.spend},0);
+  var high=list.filter(function(x){return x.orders>0&&x.sales>0&&x.spend/x.sales>tacos*1.3});
+  var cut=high.map(function(x){var a=x.spend/x.sales;return {t:x.t,acos:a,bid:Math.min(50,Math.round((1-tacos/a)*100)),save:x.spend-x.sales*tacos}}).sort(function(a,b){return b.save-a.save}).slice(0,10);
+  var cutSave=cut.reduce(function(s,x){return s+x.save},0);
+  var watch=list.filter(function(x){return x.orders===0&&x.clicks>0&&x.clicks<minC});
+  var watchSpend=watch.reduce(function(s,x){return s+x.spend},0);
+  var badC=cl.filter(function(x){return x.spend>0&&x.wasted/x.spend>0.3});
+  return {negs:negs,asinNegs:asinNegs,wordNegs:wordNegs,negSave:negSave,cut:cut,cutSave:cutSave,watch:watch,watchSpend:watchSpend,badC:badC};
+}
+function renderPlan(P){
+  function card(t,b){return '<div class="panel" style="margin-top:12px"><b>'+t+'</b><div style="margin-top:6px">'+b+'</div></div>'}
+  var h='<div class="kpis">'+kp('Recoverable from negatives',m(P.negSave),'bad')+kp('Extra from bid cuts',m(P.cutSave),'bad')+kp('Estimated total per report period',m(P.negSave+P.cutSave),'good')+'</div><p class="small">This assumes the same terms behave the same way next period. Present it as a target, not a guarantee.</p>';
+  h+=card('1. Add negative exact keywords','Block '+P.wordNegs.length+' search terms that had at least '+$('minc').value+' clicks and no orders. Add them as negative exact in the same campaigns they appeared in.<textarea id="negbox" style="margin-top:10px;min-height:110px" readonly>'+esc(P.wordNegs.slice(0,150).join('\n'))+'</textarea><div class="opts"><button id="copyneg" class="ghost">Copy negative list</button></div>');
+  if(P.asinNegs.length)h+=card('2. Exclude wasteful product pages','These look like ASINs: '+esc(P.asinNegs.slice(0,15).join(', '))+'. Add them as negative product targets so ads stop showing on competitors’ pages that do not convert.');
+  h+=card('3. Lower bids where ACOS is above target',P.cut.length?'<div class="scroll"><table>'+tbl(['Search term','ACOS','Suggested bid cut'],P.cut.map(function(x){return [x.t,pct(x.acos),x.bid+'%']}),-1)+'</table></div><div class="small">Cut is sized to bring each term toward the target ACOS.</div>':'No converting terms are far above target ACOS.');
+  h+=card('4. Move winners to exact match','Create an exact match campaign with the profitable terms above, one ad group per product theme. Raise bids on them a little and add the same terms as negatives in the broad and auto campaigns so they stop competing with each other.');
+  h+=card('5. Fix or pause weak campaigns',P.badC.length?P.badC.slice(0,5).map(function(x){return '• '+esc(x.t)+': '+pct(x.wasted/x.spend)+' of its spend was wasted. Tighten match types, add negatives, and cut the daily budget until it improves.'}).join('<br>'):'No campaign has more than 30% of its spend wasted. Focus on bid cuts and negatives.');
+  h+=card('6. Watch list','There are '+P.watch.length+' terms with some clicks but fewer than '+$('minc').value+' and no orders, costing '+m(P.watchSpend)+'. Do not block them yet. Check again next week and add negatives once they pass the click threshold.');
+  h+=card('7. Keep it going','Review the search term report weekly. Add negatives, adjust bids, and move new winners to exact match. Track wasted spend share each week; it should fall steadily.');
+  $('plan').innerHTML=h;
+  var b=$('copyneg');
+  if(b)b.onclick=function(){var box=$('negbox');box.select();if(navigator.clipboard)navigator.clipboard.writeText(box.value);b.textContent='Copied';setTimeout(function(){b.textContent='Copy negative list'},1500)};
+}
+function kp(l,v,c){return '<div class="kpi '+(c||'')+'"><b>'+esc(v)+'</b><span>'+esc(l)+'</span></div>'}
+function tbl(h,rows,wc){
+  var s='<tr>'+h.map(function(x){return '<th>'+esc(x)+'</th>'}).join('')+'</tr>';
+  if(!rows.length)return s+'<tr><td colspan="'+h.length+'">Nothing found with the current thresholds.</td></tr>';
+  return s+rows.map(function(r){return '<tr>'+r.map(function(c,i){return '<td'+(i===wc?' class="w"':'')+'>'+esc(c)+'</td>'}).join('')+'</tr>'}).join('');
+}
+function buildPitch(d){
+  var name=$('sname').value.trim(), who=name?name:'your account';
+  var sp=d.T.spend, wp=sp?d.wSpend/sp:0;
+  var top=d.waste.slice(0,3).map(function(x){return '“'+x.t+'” ('+m(x.spend)+', '+x.clicks+' clicks, 0 orders)'}).join('; ');
+  var svc=$('svc').value.split('\n').map(function(s){return s.trim()}).filter(Boolean);
+  var L=[];
+  L.push('1. OPEN WITH THE FINDING');
+  L.push('“I went through the search term report for '+who+'. Of the '+m(sp)+' spent on ads in this period, '+m(d.wSpend)+' ('+pct(wp)+') went to search terms that got at least '+d.minC+' clicks and never produced a single order. Including smaller terms, '+m(d.wAllSpend)+' had zero orders.”');
+  L.push('');
+  L.push('2. SHOW THE PROOF ON SCREEN');
+  L.push(d.waste.length?'Point to the top offenders: '+top+'.':'Few terms crossed the waste threshold. Lower the click threshold to find more, or focus on ACOS and winners below.');
+  if(d.hasCamp&&d.cl.length&&d.cl[0].wasted>0)L.push('Biggest leak by campaign: “'+d.cl[0].t+'” wasted '+m(d.cl[0].wasted)+' ('+pct(d.cl[0].spend?d.cl[0].wasted/d.cl[0].spend:0)+' of that campaign’s spend).');
+  L.push('');
+  L.push('3. TURN IT INTO THEIR MONEY');
+  L.push('“Over a month like this, that is '+m(d.wSpend)+' with nothing to show for it. Two options: keep it, or move it to terms that already convert.”');
+  L.push(d.winners.length?'“You already have '+d.winners.length+' terms converting under '+(d.tacos*100).toFixed(0)+'% ACOS, for example “'+d.winners[0].t+'” ('+d.winners[0].orders+' orders, '+m(d.winners[0].sales)+' in sales). We move budget there.”':'“Right now very few terms convert profitably, which tells me targeting needs restructuring, not just trimming.”');
+  L.push('Overall ACOS is '+(d.T.sales?pct(d.acos):'undefined (no sales)')+' vs the '+(d.tacos*100).toFixed(0)+'% target.');
+  L.push('');
+  L.push('3b. THE FIX (what you will do)');
+  L.push('• Add '+d.plan.negs.length+' negative keywords so these terms stop spending (up to '+m(d.plan.negSave)+' back).');
+  L.push('• Cut bids on '+d.plan.cut.length+' terms running above the target ACOS (about '+m(d.plan.cutSave)+').');
+  L.push('• Move '+Math.min(d.winners.length,10)+' proven terms into an exact match campaign so budget follows what converts.');
+  L.push('• Review search terms every week so the waste does not come back.');
+  L.push('');
+  L.push('4. DISCOVERY QUESTIONS (ask before pitching)');
+  L.push('• What ACOS and TACoS are you comfortable with, and what is your margin after fees?');
+  L.push('• Who checks search terms today, and how often?');
+  L.push('• Have you added negative keywords recently? When was the last cleanup?');
+  L.push('• If the wasted spend were saved, would you pull back or reinvest in growth?');
+  L.push('');
+  L.push('5. RECOMMEND A PLAN');
+  if(d.tier)L.push('Suggest the '+d.tier.name+' plan. '+d.tier.reasons.join(' '));
+  if(d.rec&&d.rec.plans.length){L.push('Suggest “'+d.rec.plans[0].name+'”. The recommended plan section above has the reasons and the 30-day test to offer.')}else L.push('(Add your plans at the top and analyze again.)');
+  L.push('');
+  L.push('6. OBJECTIONS');
+  L.push('• “I can do this myself.” → “You can. The question is whether you have the hours every week. This report shows what skipping it costs.”');
+  L.push('• “Amazon’s auto settings handle it.” → “Amazon optimizes for spend, not your margin. The zero-order terms here ran under those settings.”');
+  L.push('• “I already have an agency.” → “Then this is a free second opinion. Share what they have fixed from this list.”');
+  L.push('• “Too expensive.” → “The leak is '+m(d.wSpend)+' in this period. The fee should be a fraction of what we recover.”');
+  L.push('');
+  L.push('7. CLOSE');
+  L.push('“Let’s start with a cleanup of these terms and a 30-day review. If the numbers do not move, we stop. Can I send the negative keyword list and the proposal today?”');
+  return L.join('\n');
+}
+$('copy').addEventListener('click',function(){
+  var t=$('pitch').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){$('copy').textContent='Copied'}).catch(function(){sel()})}else sel();
+  function sel(){var r=document.createRange();r.selectNodeContents($('pitch'));var s=getSelection();s.removeAllRanges();s.addRange(r)}
+  setTimeout(function(){$('copy').textContent='Copy talk track'},1500);
+});
+})();
+</script>
+</body>
+</html>
